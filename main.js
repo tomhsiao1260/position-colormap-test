@@ -35,6 +35,8 @@ scene.add(camera)
 
 // Plane
 const geometry = new THREE.PlaneGeometry(1, 1351 / 1738, 100, 100)
+setupAttributes(geometry)
+
 const material = new Shader()
 const positionTexture = new TextureLoader().load('position.png')
 material.uniforms.tDiffuse.value = positionTexture
@@ -50,9 +52,7 @@ gui.add(material.uniforms.uFlatten, 'value', 0, 1, 0.01).name('flatten')
 // Renderer
 const canvas = document.querySelector('.webgl')
 
-const renderer = new THREE.WebGLRenderer({
-    canvas: canvas
-})
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
 renderer.setPixelRatio(window.devicePixelRatio)
 renderer.setSize(sizes.width, sizes.height)
 
@@ -74,4 +74,21 @@ const tick = () =>
     window.requestAnimationFrame(tick)
 }
 tick()
+
+// Wireframe Shader: https://github.com/mrdoob/three.js/blob/dev/examples/webgl_materials_wireframe.html
+function setupAttributes(geometry) {
+    const vectors = [
+        new THREE.Vector3(1, 0, 0),
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(0, 0, 1)
+    ]
+
+    const position = geometry.attributes.position
+    const centers = new Float32Array(position.count * 3)
+
+    for (let i = 0, l = position.count; i<l; i ++) {
+        vectors[ i % 3 ].toArray(centers, i * 3)
+    }
+    geometry.setAttribute('center', new THREE.BufferAttribute(centers, 3))
+}
 
