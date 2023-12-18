@@ -2,6 +2,7 @@ import './style.css'
 import * as THREE from 'three'
 import { TextureLoader } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min'
 import { Shader } from './Shader'
 
 // Sizes
@@ -37,9 +38,14 @@ const geometry = new THREE.PlaneGeometry(1, 1351 / 1738, 100, 100)
 const material = new Shader()
 const positionTexture = new TextureLoader().load('position.png')
 material.uniforms.tDiffuse.value = positionTexture
+material.uniforms.uFlatten.value = 1.0
 
 const plane = new THREE.Mesh(geometry, material)
 scene.add(plane)
+
+// GUI
+const gui = new GUI()
+gui.add(material.uniforms.uFlatten, 'value', 0, 1, 0.01).name('flatten')
 
 // Renderer
 const canvas = document.querySelector('.webgl')
@@ -68,3 +74,4 @@ const tick = () =>
     window.requestAnimationFrame(tick)
 }
 tick()
+
