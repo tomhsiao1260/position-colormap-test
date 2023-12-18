@@ -7,11 +7,16 @@ export class Shader extends ShaderMaterial {
       transparent: true,
 
       uniforms: {
+        uBox: { value: null },
         tDiffuse: { value: null },
+        uFace: { value: true },
         uFlatten: { value: 1.0 },
+        uPSize: { value: 1.0 },
       },
 
       vertexShader: /* glsl */ `
+        uniform vec3 uBox;
+        uniform float uPSize;
         uniform sampler2D tDiffuse;
         uniform float uFlatten;
         varying vec2 vUv;
@@ -21,9 +26,9 @@ export class Shader extends ShaderMaterial {
 
         void main()
         {
-          vec4 color = texture2D( tDiffuse, uv );
-          vec3 origin = vec3(0.5);
-          vec3 pos = color.xyz - origin;
+          vec3 o = vec3(0.5);
+          vec4 p = texture2D(tDiffuse, vec2(uv.x, 1.0 - uv.y));
+          vec3 pos = (p.xyz - o) * (uBox / uBox.z) * uPSize;
 
           vec3 newPosition = pos + uFlatten * (position - pos);
 
@@ -40,15 +45,14 @@ export class Shader extends ShaderMaterial {
 
       fragmentShader: /* glsl */ `
         uniform sampler2D tDiffuse;
+        uniform bool uFace;
 
         varying vec2 vUv;
         varying vec3 vCenter;
 
         void main() {
-          vec4 color = texture2D( tDiffuse, vUv );
-
-          // if (color.r + color.g + color.b < 0.01) { gl_FragColor = vec4(0.0); return; }
-          gl_FragColor = color;
+          vec3 faceColor = texture2D(tDiffuse, vec2(vUv.x, 1.0 - vUv.y)).rgb;
+          vec3 edgeColor = gl_FrontFacing ? vec3(1.0) : vec3(0.4, 0.4, 0.5);
 
           // Wireframe
           float thickness = 1.0;
@@ -56,8 +60,8 @@ export class Shader extends ShaderMaterial {
           vec3 edge3 = smoothstep((thickness - 1.0) * afwidth, thickness * afwidth, vCenter.xyz);
           float edge = 1.0 - min(min(edge3.x, edge3.y), edge3.z);
 
-          gl_FragColor.rgb = gl_FrontFacing ? color.rgb : vec3(0.4, 0.4, 0.5);
-          gl_FragColor.a = edge;
+          gl_FragColor.rgb = uFace ? faceColor : edgeColor;
+          gl_FragColor.a = uFace ? 1.0 : edge;
         }
       `
     });
