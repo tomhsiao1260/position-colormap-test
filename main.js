@@ -52,21 +52,43 @@ const pSize = 2
 const geometry = new THREE.PlaneGeometry(pSize, pSize * textureHeight / textureWidth, 100, 100)
 setupAttributes(geometry)
 
-const material = new Shader()
-const positionTexture = new TextureLoader().load('position.png', render)
-material.uniforms.tDiffuse.value = positionTexture
-material.uniforms.uPSize.value = pSize
-material.uniforms.uFace.value = true
-material.uniforms.uFlatten.value = 1.0
-material.uniforms.uBox.value = new THREE.Vector3(xMax, yMax, zMax)
+const positionTexture = new TextureLoader().load('20230702185753.png', render)
 
-const plane = new THREE.Mesh(geometry, material)
-scene.add(plane)
+const m1Texture = new TextureLoader().load('20230702185753_l4_mask.png', render)
+const m2Texture = new TextureLoader().load('20230702185753_r3_mask.png', render)
+const m3Texture = new TextureLoader().load('20230702185753_l3_mask.png', render)
+const m4Texture = new TextureLoader().load('20230702185753_r2_mask.png', render)
+const m5Texture = new TextureLoader().load('20230702185753_l2_mask.png', render)
+const m6Texture = new TextureLoader().load('20230702185753_r1_mask.png', render)
+const m7Texture = new TextureLoader().load('20230702185753_l1_mask.png', render)
+
+const m1 = setupMaterial(positionTexture, m1Texture, pSize, xMax, yMax, zMax)
+const m2 = setupMaterial(positionTexture, m2Texture, pSize, xMax, yMax, zMax)
+const m3 = setupMaterial(positionTexture, m3Texture, pSize, xMax, yMax, zMax)
+const m4 = setupMaterial(positionTexture, m4Texture, pSize, xMax, yMax, zMax)
+const m5 = setupMaterial(positionTexture, m5Texture, pSize, xMax, yMax, zMax)
+const m6 = setupMaterial(positionTexture, m6Texture, pSize, xMax, yMax, zMax)
+const m7 = setupMaterial(positionTexture, m7Texture, pSize, xMax, yMax, zMax)
+
+const p1 = new THREE.Mesh(geometry, m1)
+const p2 = new THREE.Mesh(geometry, m2)
+const p3 = new THREE.Mesh(geometry, m3)
+const p4 = new THREE.Mesh(geometry, m4)
+const p5 = new THREE.Mesh(geometry, m5)
+const p6 = new THREE.Mesh(geometry, m6)
+const p7 = new THREE.Mesh(geometry, m7)
+
+const meshList = [ p1, p2, p3, p4, p5, p6, p7 ]
+meshList.forEach((mesh) => scene.add(mesh))
 
 // GUI
+const params = { face: true, flatten: 1 }
+meshList.forEach((mesh, i) => { params[i + 1] = true })
+
 const gui = new GUI()
-gui.add(material.uniforms.uFace, 'value').name('face').onChange(render)
-gui.add(material.uniforms.uFlatten, 'value', 0, 1, 0.01).name('flatten').onChange(render)
+gui.add(params, 'face').name('face').onChange(render)
+gui.add(params, 'flatten', 0, 1, 0.01).name('flatten').onChange(render)
+meshList.forEach((mesh, i) => { gui.add(params, i + 1).name(i + 1).onChange(render) })
 
 // Renderer
 const canvas = document.querySelector('.webgl')
@@ -76,12 +98,18 @@ renderer.setSize(sizes.width, sizes.height)
 
 // Controls
 const controls = new ArcballControls(camera, canvas, scene)
-// const controls = new OrbitControls(camera, canvas)
-// controls.target = new THREE.Vector3(0,0,0)
 controls.addEventListener('change', render)
 
 // Render
-function render() { renderer.render(scene, camera) }
+function render() {
+    meshList.forEach((mesh, i) => {
+        mesh.visible = params[i + 1]
+        mesh.material.uniforms.uFace.value = params.face
+        mesh.material.uniforms.uFlatten.value = params.flatten
+    })
+
+    renderer.render(scene, camera)
+}
 
 // Wireframe Shader: https://github.com/mrdoob/three.js/blob/dev/examples/webgl_materials_wireframe.html
 function setupAttributes(geometry) {
@@ -98,5 +126,24 @@ function setupAttributes(geometry) {
         vectors[ i % 3 ].toArray(centers, i * 3)
     }
     geometry.setAttribute('center', new THREE.BufferAttribute(centers, 3))
+}
+
+function setupMaterial(positionTexture, maskTexture, pSize, xMax, yMax, zMax) {
+    const material = new Shader()
+
+    material.uniforms.uPSize.value = pSize
+    material.uniforms.uFace.value = true
+    material.uniforms.uFlatten.value = 1.0
+    material.uniforms.uBox.value = new THREE.Vector3(xMax, yMax, zMax)
+
+    positionTexture.minFilter = THREE.NearestFilter
+    positionTexture.magFilter = THREE.NearestFilter
+    material.uniforms.tDiffuse.value = positionTexture
+
+    maskTexture.minFilter = THREE.NearestFilter
+    maskTexture.magFilter = THREE.NearestFilter
+    material.uniforms.tMask.value = maskTexture
+
+    return material
 }
 

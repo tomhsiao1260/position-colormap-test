@@ -9,6 +9,7 @@ export class Shader extends ShaderMaterial {
       uniforms: {
         uBox: { value: null },
         tDiffuse: { value: null },
+        tMask: { value: null },
         uFace: { value: true },
         uFlatten: { value: 1.0 },
         uPSize: { value: 1.0 },
@@ -45,14 +46,19 @@ export class Shader extends ShaderMaterial {
 
       fragmentShader: /* glsl */ `
         uniform sampler2D tDiffuse;
+        uniform sampler2D tMask;
         uniform bool uFace;
 
         varying vec2 vUv;
         varying vec3 vCenter;
 
         void main() {
-          vec3 faceColor = texture2D(tDiffuse, vec2(vUv.x, 1.0 - vUv.y)).rgb;
-          vec3 edgeColor = gl_FrontFacing ? vec3(1.0) : vec3(0.4, 0.4, 0.5);
+          vec4 maskColor = texture2D(tMask, vec2(vUv.x, 1.0 - vUv.y));
+          vec4 faceColor = texture2D(tDiffuse, vec2(vUv.x, 1.0 - vUv.y));
+          vec4 edgeColor = gl_FrontFacing ? vec4(1.0) : vec4(0.4, 0.4, 0.5, 1.0);
+
+          if (faceColor.a < 0.01) discard;
+          if (maskColor.r < 0.01) discard;
 
           // Wireframe
           float thickness = 1.0;
@@ -60,7 +66,7 @@ export class Shader extends ShaderMaterial {
           vec3 edge3 = smoothstep((thickness - 1.0) * afwidth, thickness * afwidth, vCenter.xyz);
           float edge = 1.0 - min(min(edge3.x, edge3.y), edge3.z);
 
-          gl_FragColor.rgb = uFace ? faceColor : edgeColor;
+          gl_FragColor = uFace ? faceColor : edgeColor;
           gl_FragColor.a = uFace ? 1.0 : edge;
         }
       `
